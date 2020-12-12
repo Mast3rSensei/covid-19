@@ -37,15 +37,11 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-fig_confirmados_regiao = px.line(confirmados_regiao, x='data_dados', y='confirmados_regiao', color='ars')
-
 fig_confirmados_age_f = px.line(confirmados_age_f, x='data_dados', y='value', color='variable')
 
 fig_confirmados_age_m = px.line(confirmados_age_m, x='data_dados', y='value', color='variable')
 
 waterfall_fig = go.Figure(go.Waterfall(x=df['data_dados'], y=df['confirmados_novos']))
-
-fig_confirmados_regiao.update_layout(xaxis=dict(title='Date'))
 
 app.layout = html.Div([
     html.H1('Portugal COVID Tracker'),
@@ -54,7 +50,12 @@ app.layout = html.Div([
         html.Div('Total deaths: %d' % total_deaths)
     ]),
     html.Div([
-        dcc.Graph(id='line-graph', figure=fig_confirmados_regiao),
+        dcc.Checklist(
+            id='radio_conf',
+            options=[{'label' : i, 'value': 'confirmados_' + i} for i in ['arsnorte', 'arscentro', 'arslvt', 'arsalentejo', 'arsalgarve', 'acores', 'madeira']],
+            value=['confirmados_arslvt']
+            ),
+        dcc.Graph(id='line-graph'),
         html.Div([
             html.Div(dcc.Graph(id='female_confirmed', figure=fig_confirmados_age_f), style=dict(position='relative')),
             html.Div(dcc.Graph(id='male_confirmed', figure=fig_confirmados_age_m), style=dict(position='relative'))
@@ -64,6 +65,17 @@ app.layout = html.Div([
         html.Div(dcc.Graph(id='waterfall', figure=waterfall_fig))
     ])
 ])
+
+@app.callback(
+    Output('line-graph', 'figure'),
+    Input('radio_conf', 'value'))
+def update_graph(regions_names):
+    if regions_names == []:
+        fig_confirmados_regiao = px.line()
+    else:
+        fig_confirmados_regiao = px.line(confirmados_regiao.loc[confirmados_regiao['ars'].isin(regions_names)], x='data_dados', y='confirmados_regiao', color='ars')
+    fig_confirmados_regiao.update_layout(xaxis=dict(title='Date'))
+    return fig_confirmados_regiao
 
 if __name__ == '__main__':
     app.run_server(debug=True)
